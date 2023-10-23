@@ -561,7 +561,7 @@ class SessionContextManager(threading.Thread):
     def upsf_register_task(**kwargs):
         """periodic background task"""
         while True:
-            with contextlib.suppress(RuntimeError):
+            with contextlib.suppress(Exception):
                 # sleep for specified time interval, default: 60s
                 time.sleep(int(kwargs.get("interval", 60)))
 

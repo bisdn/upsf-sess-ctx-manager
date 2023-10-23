@@ -1,0 +1,32 @@
+upsf:
+  sessionContexts:
+    - name: "minimalistic"
+      sourceMacAddress: "ee:ee:ee:ee:ee:ee"
+    - name: "default-cp-ctx"
+      requiredQuality: 1000
+      requiredServiceGroups:
+        - "basic-internet"
+    - name: "acme"
+      requiredQuality: 100
+      requiredServiceGroups:
+        - "acme"
+      customerType: "business"
+      circuitId: "port18.msan4.bln03.operator.org"
+      services:
+        - svlan: 3
+          requiredServiceGroups:
+            - "dev-mgmt"
+        - svlan: 7
+          requiredServiceGroups:
+            - "auth-generic"
+        - svlan: 3001
+        - svlan: 3002
+        - svlan: 3050
+        - sourceMacAddress: "52:54:52:54:52:54"
+          shard: "shard-F"
+          remoteId: "Fritzbox"
+        - svlan: 3999
+    - name: "customerA@example.org"
+      circuitId: "port16.msan03.bln04.operator.org"
+      requiredServiceGroups:
+        - "basic-internet"

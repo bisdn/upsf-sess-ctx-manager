@@ -20,133 +20,77 @@ session context manager. An associated environment variable exists
 for each command line option: the CLI option takes precedence,
 though.
 
-<table>
-  <tr>
-    <th>Option</th>
-    <th>Default value</th>
-    <th>Environment variable</th>
-    <th>Description</th>
-  </tr>
-  <tr>
-    <td>--upsf-host</td>
-    <td>127.0.0.1</td>
-    <td>UPSF_HOST</td>
-    <td>UPSF server host to connect to</td>
-  </tr>
-  <tr>
-    <td>--upsf-port</td>
-    <td>50051</td>
-    <td>UPSF_PORT</td>
-    <td>UPSF server port to connect to</td>
-  </tr>
-  <tr>
-    <td>--default-shard-name</td>
-    <td>default-shard</td>
-    <td>DEFAULT_SHARD_NAME</td>
-    <td>Default shard name (not in use)</td>
-  </tr>
-  <tr>
-    <td>--default-required-quality</td>
-    <td>1000</td>
-    <td>DEFAULT_REQUIRED_QUALITY</td>
-    <td>Default required quality assigned to pre-defined session contexts</td>
-  </tr>
-  <tr>
-    <td>--default-required-service-groups</td>
-    <td>basic-internet</td>
-    <td>DEFAULT_REQUIRED_SERVICE_GROUPS</td>
-    <td>Default required service groups assigned to pre-defined session contexts, comma separated string</td>
-  </tr>
-  <tr>
-    <td>--config-file</td>
-    <td>/etc/upsf/policy.yml</td>
-    <td>CONFIG_FILE</td>
-    <td>Policy configuration file containing pre-defined subscriber groups (shards)</td>
-  </tr>
-  <tr>
-    <td>--registration-interval</td>
-    <td>60</td>
-    <td>REGISTRATION_INTERVAL</td>
-    <td>Run periodic background thread every _registration_interval_ seconds.</td>
-  </tr>
-  <tr>
-    <td>--upsf-auto-register</td>
-    <td>yes</td>
-    <td>UPSF_AUTO_REGISTER</td>
-    <td>Enable periodic background thread for creating pre-defined shards.</td>
-  </tr>
-  <tr>
-    <td>--log-level</td>
-    <td>info</td>
-    <td>LOG_LEVEL</td>
-    <td>Default loglevel, supported options: info, warning, error, critical, debug</td>
-  </tr>
-</table>
+| Option                            | Default value        | Environment variable            | Description                                                                                      |
+|-----------------------------------|----------------------|---------------------------------|--------------------------------------------------------------------------------------------------|
+| --upsf-host                       | 127.0.0.1            | UPSF_HOST                       | UPSF server host to connect to                                                                   |
+| --upsf-port                       | 50051                | UPSF_PORT                       | UPSF server port to connect to                                                                   |
+| --default-shard-name              | default-shard        | DEFAULT_SHARD_NAME              | Default shard name (not in use)                                                                  |
+| --default-required-quality        | 1000                 | DEFAULT_REQUIRED_QUALITY        | Default required quality assigned to pre-defined session contexts                                |
+| --default-required-service-groups | basic-internet       | DEFAULT_REQUIRED_SERVICE_GROUPS | Default required service groups assigned to pre-defined session contexts, comma separated string |
+| --config-file                     | /etc/upsf/policy.yml | CONFIG_FILE                     | Policy configuration file containing pre-defined session contexts                                |
+| --registration-interval           | 60                   | REGISTRATION_INTERVAL           | Run periodic background thread every _registration_interval_ seconds.                            |
+| --upsf-auto-register              | yes                  | UPSF_AUTO_REGISTER              | Enable periodic background thread for creating pre-defined shards.                               |
+| --log-level                       | info                 | LOG_LEVEL                       | Default loglevel, supported options: info, warning, error, critical, debug                       |
 
-This application makes use of the <a
-href="https://github.com/bisdn/upsf-client">upsf-client</a> library for
-UPSF related communication.
+This application makes use of the [upsf-client](https://github.com/bisdn/upsf-client)
+library for UPSF related communication.
 
-# Getting started and installation
+## Getting started and installation
 
-Installation is based on <a
-href="https://setuptools.pypa.io/en/latest/setuptools.html">Setuptools</a>.
+Installation is based on [Setuptools](https://setuptools.pypa.io/en/latest/setuptools.html).
 
 For safe testing create and enter a virtual environment, build and install the
 application, e.g.:
 
-```
+```bash
 sh# cd upsf-sess-ctx-manager
 sh# python3 -m venv venv
 sh# source venv/bin/activate
+sh# pip install -r ./requirements.txt
 sh# python3 setup.py build && python3 setup.py install
 
-### if you haven't done before, build and install the submodules as well
+### if you haven't done so yet, build and install the submodule(s) as well
 sh# git submodule update --init --recursive
-sh# cd upsf-grpc-client
+sh# cd upsf-client
+sh# pip install -r ./requirements.txt
 sh# python3 setup.py build && python3 setup.py install
 
-sh# sess-ctx-manager -h
+sh# upsf-sess-ctx-manager -h
 ```
 
-# Mapping session contexts
+## Mapping session contexts
 
 This section describes briefly the mapping algorithm in session context
 manager. It listens on events emitted by the UPSF for session
-contexts (SCTX) and subcriber groups (SHRD). 
+contexts (SCTX) and subcriber groups (SHRD).
 
 For any event received for these items the mapping algorithm is
 executed. Here its pseudo code:
 
 1. Read all SGUP and SHRD items from UPSF.
-
-2. If no SGUP instances exist, return
-
-3. For every session context:
-   * set required quality to default value unless specified
-   * set list of required service groups to default list unless specified
-
-4. If desired shard is unset and the set of required service groups is not
+1. If no SGUP instances exist, return
+1. For every session context:
+   - set required quality to default value unless specified
+   - set list of required service groups to default list unless specified
+1. If desired shard is unset and the set of required service groups is not
    empty:
-   * get set of candidate SGUP instances based on required and supported 
+   - get set of candidate SGUP instances based on required and supported
      service groups
-   * get active load for each candidate SGUP based on number of allocated sessions
+   - get active load for each candidate SGUP based on number of allocated sessions
      and maximum number of supported sessions
-   * Select SGUP with least load
-
-5. Get all shards assigned to selected least loaded SGUP instance:
-   * If the set of shard candidates is empty, return
-   * get active load for each candidate shard based on number of allocated
+   - Select SGUP with least load
+1. Get all shards assigned to selected least loaded SGUP instance:
+   - If the set of shard candidates is empty, return
+   - get active load for each candidate shard based on number of allocated
      sessions and maximum number of supported sessions
-   * Select shard with least load and assign session context
-
-6. Continue until list of session contexts has been exhausted
+   - Select shard with least load and assign session context
+1. Continue until list of session contexts has been exhausted
 
 If no shard instance can be found for a particular session context,
 sess-ctx-manager ignores the session context without altering its
 state in the UPSF database.
 
-# Policy configuration file
+## Policy configuration file
 
 A configuration file is used for creating pre-defined entities in
 the UPSF. A background task ensures existence of those entities,
@@ -158,9 +102,9 @@ the item from the UPSF first and sess-ctx-manager's background task will
 recreate it after a short period of time.
 
 See below for an example policy configuration or inspect the examples
-in the <a href="./tools/policy.yml">tools/</a> directory:
+in the [tools/](./tools/policy.yml) directory:
 
-```
+```yaml
 upsf:
   sessionContexts:
     - name: "minimalistic"
@@ -194,4 +138,3 @@ upsf:
       requiredServiceGroups:
         - "basic-internet"
 ```
-

@@ -79,7 +79,7 @@ setuptools.setup(
     description="UPSF session context manager",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/bisdn/upsf_sess_ctx_manager.git",
+    url="https://github.com/bisdn/upsf-sess-ctx-manager.git",
     packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -87,10 +87,7 @@ setuptools.setup(
         "License :: Other/Proprietary License",
         "Operating System :: OS Independent",
     ],
-    install_requires=[
-    ],
     include_package_data=True,
-    package_data={},
     entry_points={
         "console_scripts": [
             "upsf-sess-ctx-manager=upsf_sess_ctx_manager.app:main",

@@ -1,9 +1,9 @@
+#!/usr/bin/env python3
+
 # BSD 3-Clause License
 #
 # Copyright (c) 2023, BISDN GmbH
 # All rights reserved.
-
-#!/usr/bin/env python3
 
 """session context manager module"""
 
@@ -15,7 +15,6 @@
 
 import os
 import sys
-import enum
 import time
 import logging
 import argparse
@@ -31,17 +30,7 @@ from upsf_client.upsf import (
     UPSF,
     UpsfError,
 )
-
-
-class DerivedState(enum.Enum):
-    """DerivedState"""
-
-    UNKNOWN = 0
-    INACTIVE = 1
-    ACTIVE = 2
-    UPDATING = 3
-    DELETING = 4
-    DELETED = 5
+from upsf_client.derived_state import DerivedState
 
 
 def str2bool(value):
@@ -375,7 +364,6 @@ class SessionContextManager(threading.Thread):
                 self.log.debug(
                     {
                         "entity": str(self),
-                        "marker": "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
                         "event": "selected service gateway user plane and shard",
                         "sctx.name": sctx.name,
                         "sctx.rsgs": list(sctx.spec.required_service_group),
@@ -401,7 +389,9 @@ class SessionContextManager(threading.Thread):
                 )
 
                 # get SGUP from UPSF to avoid race condition
-                sgup_selected = self._upsf.get_service_gateway_user_plane(name=sgup_name_selected)
+                sgup_selected = self._upsf.get_service_gateway_user_plane(
+                    name=sgup_name_selected
+                )
 
                 sgup_params = {
                     "name": sgup_name_selected,
@@ -416,7 +406,7 @@ class SessionContextManager(threading.Thread):
             # update session context if any attribute has changed
             if len(params):
                 params["name"] = sctx.name
-                self.log.info(
+                self.log.debug(
                     {
                         "entity": str(self),
                         "event": "updating session context",
@@ -548,7 +538,7 @@ class SessionContextManager(threading.Thread):
         self.log.info(
             {
                 "entity": str(self),
-                "event": "add entry",
+                "event": "add entry to UPSF",
                 "entry": entry,
                 "params": params,
             }
@@ -561,7 +551,7 @@ class SessionContextManager(threading.Thread):
     def upsf_register_task(**kwargs):
         """periodic background task"""
         while True:
-            with contextlib.suppress(RuntimeError):
+            with contextlib.suppress(Exception):
                 # sleep for specified time interval, default: 60s
                 time.sleep(int(kwargs.get("interval", 60)))
 
@@ -666,13 +656,32 @@ class SessionContextManager(threading.Thread):
                     ):
                         # with contextlib.suppress(Exception):
                         try:
+                            # unknown derived state
+                            derived_state = DerivedState.UNKNOWN.value
+
                             # shards
                             if item.shard.name not in ("",):
+                                derived_state = item.shard.metadata.derived_state
                                 self.map_all_sessions()
 
                             # session contexts
                             elif item.session_context.name not in ("",):
-                                self.map_session(item.session_context)
+                                derived_state = (
+                                    item.session_context.metadata.derived_state
+                                )
+                                if derived_state not in (
+                                    DerivedState.DELETING.value,
+                                    DerivedState.DELETED.value,
+                                ):
+                                    self.map_session(item.session_context)
+
+                            # check policy file for any required changes
+                            if derived_state in (
+                                DerivedState.DELETING.value,
+                                DerivedState.DELETED.value,
+                            ):
+                                time.sleep(1)
+                                self.create_default_items()
 
                         except UpsfError as error:
                             self.log.error(
